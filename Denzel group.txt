@@ -1,0 +1,356 @@
+  package phonebook;
+
+import java.awt.*;
+import java.awt.event.*;
+import javax.swing.*;
+import javax.swing.border.EmptyBorder;
+import javax.swing.DefaultListModel;
+import java.util.ArrayList;
+import java.util.Collections;
+
+public class Phonebook implements ActionListener {
+
+    JFrame frame;
+    JTextField nameField, phoneField, searchField;
+    JList<String> contactList; // Changed from JTextArea to JList
+    DefaultListModel<String> contactListModel;
+    JButton addButton, viewButton, searchButton, deleteButton, updateButton;
+
+    public Phonebook() {
+        // Initialize the frame
+        frame = new JFrame("Contact Book");
+        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        frame.setLayout(new GridBagLayout());
+        frame.setSize(400, 400);
+        frame.getContentPane().setBackground(Color.LIGHT_GRAY);
+
+        // Text fields
+        nameField = new JTextField(15);
+        phoneField = new JTextField(15);
+        searchField = new JTextField(15);
+
+        // Initialize the contact list model
+        contactListModel = new DefaultListModel<>();
+        contactList = new JList<>(contactListModel); // Use JList to display contacts
+        contactList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        JScrollPane scrollPane = new JScrollPane(contactList);
+        scrollPane.setPreferredSize(new Dimension(350, 150));
+
+        // Buttons
+        addButton = new JButton("Add Contact");
+        viewButton = new JButton("View Contacts");
+        searchButton = new JButton("Search");
+        deleteButton = new JButton("Delete Contact");
+        updateButton = new JButton("Update Contact");
+
+        // Set button colors
+        addButton.setBackground(new Color(76, 175, 80)); // Green
+        viewButton.setBackground(new Color(33, 150, 243)); // Blue
+        searchButton.setBackground(new Color(255, 193, 7)); // Yellow
+        deleteButton.setBackground(new Color(244, 67, 54)); // Red
+        updateButton.setBackground(new Color(156, 39, 176)); // Purple
+
+        // Set button text colors
+        addButton.setForeground(Color.WHITE);
+        viewButton.setForeground(Color.WHITE);
+        searchButton.setForeground(Color.BLACK);
+        deleteButton.setForeground(Color.WHITE);
+        updateButton.setForeground(Color.WHITE);
+
+        // Action listeners
+        addButton.addActionListener(this);
+        viewButton.addActionListener(this);
+        searchButton.addActionListener(this);
+        deleteButton.addActionListener(this);
+        updateButton.addActionListener(this);
+
+        // Layout setup
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        // Name field
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        frame.add(new JLabel("Name:"), gbc);
+        gbc.gridx = 1;
+        frame.add(nameField, gbc);
+
+        // Phone field
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        frame.add(new JLabel("Phone:"), gbc);
+        gbc.gridx = 1;
+        frame.add(phoneField, gbc);
+
+        // Search field
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        frame.add(new JLabel("Search:"), gbc);
+        gbc.gridx = 1;
+        frame.add(searchField, gbc);
+
+        // Button panel setup
+        JPanel buttonPanel = new JPanel(new GridLayout(1, 5, 5, 5));
+        buttonPanel.setBackground(Color.LIGHT_GRAY);
+        buttonPanel.add(addButton);
+        buttonPanel.add(viewButton);
+        buttonPanel.add(searchButton);
+        buttonPanel.add(deleteButton);
+        buttonPanel.add(updateButton);
+
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        gbc.gridwidth = 2;
+        frame.add(buttonPanel, gbc);
+
+        // Contact display area
+        gbc.gridx = 0;
+        gbc.gridy = 4;
+        gbc.gridwidth = 2;
+        frame.add(scrollPane, gbc);
+
+        // Frame visibility settings
+        frame.setVisible(true);
+    }
+
+    public static void main(String[] args) {
+        new Phonebook();
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        if (e.getSource() == addButton) {
+            String name = nameField.getText().trim();
+            String phone = phoneField.getText().trim();
+            if (!name.isEmpty() && !phone.isEmpty()) {
+                if (!isDuplicateContact(name, phone)) { // Check for duplicates
+                    String contact = "Name: " + name + ", Phone: " + phone;
+                    contactListModel.addElement(contact);
+                    sortContacts(); // Sort after adding
+                    nameField.setText("");
+                    phoneField.setText("");
+                } else {
+                    JOptionPane.showMessageDialog(frame, "This contact already exists. Please enter a unique name and phone number.");
+                }
+            } else {
+                JOptionPane.showMessageDialog(frame, "Please enter both name and phone number.");
+            }
+        } else if (e.getSource() == viewButton) {
+            // View contacts are handled by the JList directly
+            if (contactListModel.isEmpty()) {
+                JOptionPane.showMessageDialog(frame, "No contacts to display.");
+            }
+        } else if (e.getSource() == searchButton) {
+            String search = searchField.getText().trim();
+            StringBuilder results = new StringBuilder();
+            boolean found = false;
+
+            for (int i = 0; i < contactListModel.size(); i++) {
+                String contact = contactListModel.get(i);
+                if (contact.toLowerCase().contains(search.toLowerCase())) {
+                    results.append(contact).append("\n");
+                    found = true;
+                }
+            }
+
+            if (found) {
+                contactList.setListData(results.toString().split("\n"));
+            } else {
+                JOptionPane.showMessageDialog(frame, "Contact not found.");
+            }
+        } else if (e.getSource() == deleteButton) {
+            String selectedContact = contactList.getSelectedValue();
+            if (selectedContact != null) {
+                int response = JOptionPane.showConfirmDialog(frame,
+                        "Are you sure you want to delete the selected contact?",
+                        "Confirm Delete",
+                        JOptionPane.YES_NO_OPTION);
+
+                if (response == JOptionPane.YES_OPTION) {
+                    contactListModel.removeElement(selectedContact);
+                    JOptionPane.showMessageDialog(frame, "Contact deleted successfully.");
+                }
+            } else {
+                JOptionPane.showMessageDialog(frame, "Please select a contact to delete.");
+            }
+        } else if (e.getSource() == updateButton) {
+            String selectedContact = contactList.getSelectedValue();
+            if (selectedContact != null) {
+                String[] parts = selectedContact.split(", ");
+                String currentName = parts[0].substring(6);
+                String currentPhone = parts[1].substring(7);
+
+                String newName = JOptionPane.showInputDialog(frame, "Edit Name:", currentName);
+                String newPhone = JOptionPane.showInputDialog(frame, "Edit Phone:", currentPhone);
+
+                if (newName != null && newPhone != null) {
+                    if (!isDuplicateContact(newName, newPhone) || selectedContact.equals("Name: " + newName + ", Phone: " + newPhone)) {
+                        String updatedContact = "Name: " + newName + ", Phone: " + newPhone;
+                        contactListModel.setElementAt(updatedContact, contactList.getSelectedIndex());
+                        JOptionPane.showMessageDialog(frame, "Contact updated successfully.");
+                    } else {
+                        JOptionPane.showMessageDialog(frame, "This contact already exists. Please enter a unique name and phone number.");
+                    }
+                }
+            } else {
+                JOptionPane.showMessageDialog(frame, "Please select a contact to update.");
+            }
+        }
+    }
+
+    private boolean isDuplicateContact(String name, String phone) {
+        for (int i = 0; i < contactListModel.size(); i++) {
+            String contact = contactListModel.get(i);
+            String[] parts = contact.split(", ");
+            String existingName = parts[0].substring(6);
+            String existingPhone = parts[1].substring(7);
+            if (existingName.equalsIgnoreCase(name) || existingPhone.equals(phone)) {
+                return true; // Duplicate found
+            }
+        }
+        return false; // No duplicates
+    }
+
+    private void sortContacts() {
+        ArrayList<String> contactListArray = new ArrayList<>();
+        for (int i = 0; i < contactListModel.size(); i++) {
+            contactListArray.add(contactListModel.get(i));
+        }
+
+        // Sort the contacts in alphabetical order
+        Collections.sort(contactListArray);
+
+        // Clear the model and re-add the sorted contacts
+        contactListModel.clear();
+        for (String contact : contactListArray) {
+            contactListModel.addElement(contact);
+        }
+    }
+}
+
+
+
+
+
+Insert Contact
+
+
+
+FUNCTION InsertContact(name, phone)
+    IF name IS NOT EMPTY AND phone IS NOT EMPTY THEN
+        contactString = "Name: " + name + ", Phone: " + phone
+        Add contactString TO contactListModel
+    ELSE
+        DISPLAY "Please enter both name and phone number."
+    END IF
+END FUNCTION
+
+
+
+ Search Contact
+
+FUNCTION SearchContact(searchTerm)
+    results = EMPTY LIST
+    FOR EACH contact IN contactListModel
+        IF contact CONTAINS searchTerm THEN
+            ADD contact TO results
+        END IF
+    END FOR
+    
+    IF results IS NOT EMPTY THEN
+        DISPLAY results
+    ELSE
+        DISPLAY "Contact not found."
+    END IF
+END FUNCTION
+
+ Display All Contacts
+
+
+
+FUNCTION DisplayAllContacts()
+    contacts = COPY OF contactListModel AS ARRAY
+    SORT contacts IN ALPHABETICAL ORDER
+    
+    IF contacts IS NOT EMPTY THEN
+        FOR EACH contact IN contacts
+            DISPLAY contact
+        END FOR
+    ELSE
+        DISPLAY "No contacts to display."
+    END IF
+END FUNCTION
+
+Delete Contact
+
+FUNCTION DeleteContact(selectedIndex)
+    IF selectedIndex IS NOT -1 THEN
+        CONFIRM deletion
+        IF user CONFIRMS THEN
+            REMOVE contact AT selectedIndex FROM contactListModel
+            DISPLAY "Contact deleted successfully."
+        ELSE
+            DISPLAY "Delete action cancelled."
+        END IF
+    ELSE
+        DISPLAY "Please select a contact to delete."
+    END IF
+END FUNCTION
+
+
+ Delete Contact
+
+FUNCTION DeleteContact(selectedIndex)
+    IF selectedIndex IS NOT -1 THEN
+        CONFIRM deletion
+        IF user CONFIRMS THEN
+            REMOVE contact AT selectedIndex FROM contactListModel
+            DISPLAY "Contact deleted successfully."
+        ELSE
+            DISPLAY "Delete action cancelled."
+        END IF
+    ELSE
+        DISPLAY "Please select a contact to delete."
+    END IF
+END FUNCTION
+
+
+
+Update Contact
+
+FUNCTION UpdateContact(selectedIndex)
+    IF selectedIndex IS NOT -1 THEN
+        currentContact = contactListModel[selectedIndex]
+        SPLIT currentContact INTO currentName AND currentPhone
+        
+        newName = PROMPT "Edit Name:" WITH DEFAULT currentName
+        newPhone = PROMPT "Edit Phone:" WITH DEFAULT currentPhone
+        
+        IF newName IS NOT EMPTY OR newPhone IS NOT EMPTY THEN
+            updatedName = IF newName IS EMPTY THEN currentName ELSE newName
+            updatedPhone = IF newPhone IS EMPTY THEN currentPhone ELSE newPhone
+            
+            contactListModel[selectedIndex] = "Name: " + updatedName + ", Phone: " + updatedPhone
+            DISPLAY "Contact updated successfully."
+        END IF
+    ELSE
+        DISPLAY "Please select a contact to update."
+    END IF
+END FUNCTION
+
+ 
+
+
+Sort Contacts (optional)
+
+FUNCTION SortContacts()
+    contacts = COPY OF contactListModel AS ARRAY
+    SORT contacts IN ALPHABETICAL ORDER
+    
+    CLEAR contactListModel
+    FOR EACH contact IN contacts
+        ADD contact TO contactListModel
+    END FOR
+END FUNCTION
+
